@@ -126,8 +126,9 @@ function main(hb_json,selection_json){
     cct : "",
     time : "",
     view: 0,
-    infants: 0
-  }
+    infants: 0,
+    zone: 0
+  };
   getFacility(hb_json,selection_json,data);
 }
 
@@ -280,7 +281,7 @@ function getSystem(hb,selection,data){
   cacheSelectionImages(selection,"CCT");
   for (var i = 0; i < systems.length; i++){
     var _system = Object.keys(hb[data.facility][data.room][data.fixture][data.target])[i];
-    if (_system == "plan"){
+    if (_system.startsWith("plan")){
       continue;
     }
     var __system = _system.replace("[^a-zA-Z]", "").replace(/\s/g, '');
@@ -308,7 +309,6 @@ function getCCT(hb,selection,data){
       _target = data.target;
     }
     if (data.system=='Tunable'){
-      console.log(selection.CCT[_cct]);
       $('#application-modal-deck').append('<div class="card hover"><a id="'+__cct+'" data-value="'+___cct+'"><img class="card-img-top" src="'+selection["CCT"][_cct]["img"]+'" alt="CCT" /><div class="card-body"><hr/><p class="card-text">'+selection["CCT"][_cct]["desc"]+'</p></div></a></div>');
     }else{
       $('#application-modal-deck').append('<div class="card hover"><a id="'+__cct+'" data-value="'+___cct+'"><img class="card-img-top" src="'+selection["CCT"][_cct]["img"]+'" alt="CCT" /><div class="card-body"><h5 class="card-title">'+_cct+'</h5><hr/><p class="card-text">'+selection["CCT"][_cct]["desc"]+'</p></div></a></div>');
@@ -901,7 +901,7 @@ function handleRightPanelAccordion(){
   });
 }
 
-function generateCSContent(data){
+function generateCSContent(hb, data){
   var facility = data.facility;
   var room = data.room;
   var fixture = data.fixture;
@@ -932,13 +932,17 @@ function generateCSContent(data){
       $('#infants_button').removeClass('active');
       $('#nurses_button').addClass('active');
       data.infants = 0;
-      generateCSContent(data);
+      generateCSContent(hb, data);
+      data.zone = 1;
+      generatePlan(hb[data.facility][data.room][data.fixture][data.target],data.view,data.zone);
     });
     $('#infants_button').click(function(){
       $('#nurses_button').removeClass('active');
       $('#infants_button').addClass('active');
       data.infants = 1;
-      generateCSContent(data);
+      generateCSContent(hb, data);
+      data.zone = 2;
+      generatePlan(hb[data.facility][data.room][data.fixture][data.target],data.view,data.zone);
     });
   }
 }
@@ -954,15 +958,24 @@ function generateRender(hb,selection,path,data){
       }else{
         data.view +=1;
       }
-      generatePlan(hb[data.facility][data.room][data.fixture][data.target],data.view);
+      generatePlan(hb[data.facility][data.room][data.fixture][data.target],data.view,data.zone);
       generateRender(hb,selection,path,data);
       generateAdjustments(hb,selection,data);
     });
   }
 }
 
-function generatePlan(path,view){
-  $('#final_plan_img').attr('src',path.plan[view]);
+function generatePlan(path,view,zone){
+  if(zone != 0){
+    if(zone == 1){
+      $('#final_plan_img').attr('src',path.plan[view]);
+    }else if (zone == 2){
+      console.log(path.plan2[view]);
+      $('#final_plan_img').attr('src',path.plan2[view]);
+    }
+  }else{
+    $('#final_plan_img').attr('src',path.plan[view]);
+  }
 }
 
 function generateFixtureIcons(fixture){
@@ -1039,7 +1052,7 @@ function generateAdjustments(hb,selection,data){
     }
     generateRender(hb,selection,path,data);
     generateFinalBreadcrumb(hb,selection,data);
-    generateCSContent(data,0);
+    generateCSContent(hb, data);
   });
   $('.adjustment-container-tod').click(function(){
     $('#final_adjustments .tod-border').removeClass('tod-selected');
@@ -1081,10 +1094,10 @@ function generateContent(hb,selection,data){
     buildHTML();
   }
   generateRender(hb,selection,render_path,data);
-  generatePlan(hb[data.facility][data.room][data.fixture][data.target],data.view);
+  generatePlan(hb[data.facility][data.room][data.fixture][data.target],data.view,data.zone);
   generateAdjustments(hb,selection,data);
   generateFixtureIcons(data.fixture);
-  generateCSContent(data);
+  generateCSContent(hb, data);
   generateFinalBreadcrumb(hb,selection,data);
   generateDescription(hb,data);
   checkAssumptions(data);
